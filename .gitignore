@@ -1,0 +1,23 @@
+# Dependency directories
+node_modules/
+dist/
+flaresolverr/
+
+# Private environment files (contains your Discord Token!)
+.env
+
+# Local downloads and temporary outputs
+downloads/
+*.flac
+*.mp3
+*.m4a
+*.png
+
+# Python virtual environment (just in case)
+.venv/
+__pycache__/
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini

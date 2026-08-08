@@ -1,0 +1,6 @@
+{
+    "python.analysis.extraPaths": [
+        "./lucida-flow",
+        "./src/layer1/lucida-flow"
+    ]
+}
