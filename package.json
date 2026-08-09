@@ -9,6 +9,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "deploy-commands": "tsx src/deploy-commands.ts",
+    "download": "tsx src/downloadmedia.ts",
     "package": "npm run build && npx pkg dist/index.js --targets node18-win-x64 --output dist/music-downloader.exe"
   },
   "dependencies": {

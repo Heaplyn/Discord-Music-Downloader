@@ -39,7 +39,7 @@ function startFlareSolverr() {
         return;
     }
 
-    /*console.log('Spawning FlareSolverr via Windows ShellExecute (simulating double-click)...');
+    console.log('Spawning FlareSolverr via Windows ShellExecute (simulating double-click)...');
     try {
         const command = `powershell -Command "Start-Process flaresolverr.exe -WorkingDirectory '${flaresolverrDir}'"`;
         exec(command, (err) => {
@@ -50,7 +50,7 @@ function startFlareSolverr() {
         console.log('✓ FlareSolverr launched independently.');
     } catch (e) {
         console.error('✗ Failed to launch FlareSolverr:', e);
-    }*/
+    }
 }
 
 // 4. Log confirmation when the bot goes online
@@ -60,9 +60,14 @@ client.once('clientReady', () => {
     console.log(`TypeScript Discord Bot is now online and active.`);
     console.log(`Registered ${commands.size} active commands.`);
     console.log(`--------------------------------------------------\n`);
-    
+    const is_vs_code = process.env.TERM_PROGRAM === 'vscode';
+    if (!is_vs_code) {
+        startFlareSolverr();
+    } else {
+        console.log("VS Code");
+    }
     // Auto-launch FlareSolverr (For manual background execution, see guide)
-    startFlareSolverr();
+    
 });
 
 // 5. Handle incoming interactions dynamically

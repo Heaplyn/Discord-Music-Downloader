@@ -24,11 +24,10 @@ interface DownloadResult {
 async function download_yt(url: string): Promise<DownloadResult> {
     try {
         const ytdlp = new YtDlp();
-        
+
         // Execute the yt-dlp download and wait for it
         const result = await ytdlp
             .download(url, {
-                // Save it directly into the downloads folder
                 output: path.join(downloadDir, '%(title)s.%(ext)s'),
                 extractAudio: true,
                 audioFormat: 'mp3',
@@ -38,7 +37,7 @@ async function download_yt(url: string): Promise<DownloadResult> {
             .run();
 
         const filepath = result.filePaths[0];
-        
+
         if (filepath && fs.existsSync(filepath)) {
             const stats = fs.statSync(filepath);
             return {
@@ -80,7 +79,7 @@ export const downloadCommand: Command = {
         // 1. Defer reply to give the scraper up to 15 minutes of execution time
         await interaction.deferReply();
 
-        let url : string = interaction.options.getString('url', true).trim();
+        let url: string = interaction.options.getString('url', true).trim();
 
         // 2. Extract and clean the URL parameter (removes leading/trailing text and spaces)
         const pos = url.indexOf('https://');
@@ -99,7 +98,7 @@ export const downloadCommand: Command = {
             await interaction.editReply(`🔍 Bypassing verification & loading track page...`);
             const cleanUrl = url.toLowerCase();
             let type = 'lucida';
-            if (cleanUrl.includes('youtube.com') || cleanUrl.includes('youtu.be') || cleanUrl.includes('youtube-nocookie.com')) { 
+            if (cleanUrl.includes('youtube.com') || cleanUrl.includes('youtu.be') || cleanUrl.includes('youtube-nocookie.com')) {
                 type = 'ytdlp';
             }
             // 3. Instantiate TypeScript client and download the track
@@ -139,7 +138,7 @@ export const downloadCommand: Command = {
 
                         const attachment = new AttachmentBuilder(compressedPath);
                         await interaction.editReply({
-                            content: `Downloaded and compressed to ${compSizeMb.toFixed(2)} MB successfully! 🎵 \n Link: {url}`,
+                            content: `Downloaded and compressed to ${compSizeMb.toFixed(2)} MB successfully! 🎵 \n Link: ${url}`,
                             files: [attachment]
                         });
 
@@ -171,7 +170,7 @@ export const downloadCommand: Command = {
 
                 const attachment = new AttachmentBuilder(filepath);
                 await interaction.editReply({
-                    content: `Downloaded successfully! 🎵`,
+                    content: `Downloaded successfully! 🎵 \n Link: ${url}`,
                     files: [attachment]
                 });
 
