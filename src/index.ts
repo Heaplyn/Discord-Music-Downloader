@@ -9,6 +9,12 @@ import { fileURLToPath } from 'url';
 import { Command } from './types/Command.js';
 import { pingCommand } from './commands/ping.js';
 import { downloadCommand } from './commands/download.js';
+import { crCommand } from './commands/cr.js';
+import { notifyCommand } from './commands/notify.js';
+import { robloxCommand } from './commands/roblox.js';
+import { analyzeCommand } from './commands/analyze.js';
+import { monitorCommand } from './commands/monitor.js';
+import { whitelistCommand } from './commands/whitelist.js';
 
 // 1. Resolve path to .env file at the root level
 const __filename = fileURLToPath(import.meta.url);
@@ -28,6 +34,12 @@ const client = new Client({
 const commands = new Collection<string, Command>();
 commands.set(pingCommand.data.name, pingCommand);
 commands.set(downloadCommand.data.name, downloadCommand);
+commands.set(crCommand.data.name, crCommand);
+commands.set(notifyCommand.data.name, notifyCommand);
+commands.set(robloxCommand.data.name, robloxCommand);
+commands.set(analyzeCommand.data.name, analyzeCommand);
+commands.set(monitorCommand.data.name, monitorCommand);
+commands.set(whitelistCommand.data.name, whitelistCommand);
 
 // Function to start FlareSolverr dynamically using PowerShell ShellExecute
 function startFlareSolverr() {

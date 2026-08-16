@@ -3,6 +3,15 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 
+// Import commands
+import { pingCommand } from './commands/ping.js';
+import { downloadCommand } from './commands/download.js';
+import { crCommand } from './commands/cr.js';
+import { notifyCommand } from './commands/notify.js';
+import { robloxCommand } from './commands/roblox.js';
+import { analyzeCommand } from './commands/analyze.js';
+import { monitorCommand } from './commands/monitor.js';
+
 // 1. Load env variables from parent folder
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,39 +26,38 @@ if (!TOKEN) {
 // 2. Automatically extract Client ID from the Discord Token
 const clientId = Buffer.from(TOKEN.split('.')[0], 'base64').toString('utf-8');
 
-// 3. Define the Slash Commands with Contexts and Integration Types
-const commands = [
-    new SlashCommandBuilder()
-        .setName('ping')
-        .setDescription('Replies with Pong!')
-        .setContexts(
-            InteractionContextType.Guild,
-            InteractionContextType.BotDM,
-            InteractionContextType.PrivateChannel
-        )
-        .setIntegrationTypes(
-            ApplicationIntegrationType.GuildInstall,
-            ApplicationIntegrationType.UserInstall
-        ),
+// 3. Define the Slash Commands
+const commandsList = [
+    pingCommand,
+    downloadCommand,
+    crCommand,
+    notifyCommand,
+    robloxCommand,
+    analyzeCommand,
+    monitorCommand
+];
 
-    new SlashCommandBuilder()
-        .setName('download_music')
-        .setDescription('Downloads music from a website using lucida.to')
-        .addStringOption(option =>
-            option.setName('url')
-                .setDescription('The URL to download (Tidal, SoundCloud, Amazon, Qobuz, etc.)')
-                .setRequired(true)
-        )
-        .setContexts(
+const commands = commandsList.map(command => {
+    const data = command.data as any;
+
+    // Ensure all commands have the correct contexts and integration types for consistency
+    if (typeof data.setContexts === 'function') {
+        data.setContexts(
             InteractionContextType.Guild,
             InteractionContextType.BotDM,
             InteractionContextType.PrivateChannel
-        )
-        .setIntegrationTypes(
+        );
+    }
+    if (typeof data.setIntegrationTypes === 'function') {
+        data.setIntegrationTypes(
             ApplicationIntegrationType.GuildInstall,
             ApplicationIntegrationType.UserInstall
-        )
-].map(command => command.toJSON());
+        );
+    }
+
+    console.log(`  - Found command: ${data.name}`);
+    return data.toJSON();
+});
 
 // 4. Create the REST client and deploy
 const rest = new REST({ version: '10' }).setToken(TOKEN);

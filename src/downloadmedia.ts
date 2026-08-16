@@ -1,4 +1,4 @@
-// Developer: heaplyn
+// Developer: heaplyn2
 // Date: 2026-08-09
 // Summary: Standalone Command Line Interface (CLI) script to download media via Lucida (Deezer/Tidal/etc.) or YT-DLP (YouTube).
 
@@ -89,7 +89,7 @@ async function main() {
             console.log('🎉 DOWNLOAD SUCCESSFUL!');
             console.log(`📁 File: ${filename}`);
             console.log(`📍 Path: ${result.filepath}`);
-            console.log($"⚡ Size: {sizeMb.toFixed(2)} MB");
+            console.log(`⚡ Size: ${sizeMb.toFixed(2)} MB`);
             console.log('==================================================\n');
         } else {
             console.error('\n❌ DOWNLOAD FAILED!');
