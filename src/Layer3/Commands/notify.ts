@@ -5,7 +5,7 @@ import {
     AttachmentBuilder
 } from 'discord.js';
 import * as dotenv from 'dotenv';
-import { Command } from '../types/Command.js';
+import { Command } from '../../Layer0/Command.js';
 
 dotenv.config();
 

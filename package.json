@@ -5,12 +5,14 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch src/Layer4/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "deploy-commands": "tsx src/deploy-commands.ts",
-    "download": "tsx src/downloadmedia.ts",
-    "package": "npm run build && npx pkg dist/index.js --targets node18-win-x64 --output dist/music-downloader.exe"
+    "deploy-commands": "tsx src/Layer4/deploy-commands.ts",
+    "setup": "tsx src/Layer4/setup.ts",
+    "download": "tsx src/Layer2/downloadmedia.ts",
+    "package": "npm run build && npx pkg dist/Layer4/index.js --targets node18-win-x64 --output dist/music-downloader.exe",
+    "package-setup": "npm run build && npx pkg dist/Layer4/setup.js --targets node18-win-x64 --output dist/JarvisSetup.exe"
   },
   "dependencies": {
     "discord.js": "^14.15.3",

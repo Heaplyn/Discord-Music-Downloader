@@ -4,7 +4,8 @@ import {
     InteractionContextType
 } from 'discord.js';
 import * as dotenv from 'dotenv';
-import { Command } from '../types/Command.js';
+import { Command } from '../../Layer0/Command.js';
+import { checkAuth } from '../../Layer1/key.js';
 
 dotenv.config();
 
@@ -22,6 +23,8 @@ export const monitorCommand: Command = {
         ) as any,
 
     async execute(interaction: ChatInputCommandInteraction) {
+        if (!await checkAuth(interaction)) return;
+
         const assetid = interaction.options.getString('id', true).toLowerCase();
 
         if (!ROBLOX_COOKIE) {

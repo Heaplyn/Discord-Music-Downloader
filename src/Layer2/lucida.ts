@@ -23,7 +23,6 @@ export class LucidaClient {
     private userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
 
     constructor() {
-        // Default download directory
         const downloadDir = path.resolve(__dirname, '../../downloads');
         if (!fs.existsSync(downloadDir)) {
             fs.mkdirSync(downloadDir, { recursive: true });
@@ -31,10 +30,10 @@ export class LucidaClient {
     }
 
     /**
-     * Attempts to query FlareSolverr to bypass Cloudflare Turnstile and fetch active session cookies
+     * Attempts to query FlareSolverr to bypass Cloudflare and fetch session cookies
      */
     public async bypassCloudflare(): Promise<boolean> {
-        console.log('Attempting to bypass Cloudflare protection using FlareSolverr...');
+        console.log('[Lucida] Attempting to bypass Cloudflare via FlareSolverr...');
         try {
             const response = await fetch(this.flaresolverrUrl, {
                 method: 'POST',
@@ -47,18 +46,16 @@ export class LucidaClient {
             });
 
             if (!response.ok) {
-                throw new Error(`Server returned HTTP ${response.status}`);
+                throw new Error(`FlareSolverr returned HTTP ${response.status}`);
             }
 
             const data: any = await response.json();
             
             if (data.status === 'ok' && data.solution) {
-                // Save User-Agent from FlareSolverr session
                 if (data.solution.userAgent) {
                     this.userAgent = data.solution.userAgent;
                 }
 
-                // Map cookies to Playwright format
                 const rawCookies: FlareSolverrCookie[] = data.solution.cookies || [];
                 this.cookies = rawCookies.map(cookie => ({
                     name: cookie.name,
@@ -71,37 +68,44 @@ export class LucidaClient {
                     sameSite: 'Lax' as const
                 }));
 
-                console.log('✓ Successfully bypassed Cloudflare! Cookies cached.');
+                console.log('✓ [Lucida] Successfully bypassed Cloudflare! Cookies cached.');
                 return true;
             }
             return false;
         } catch (e: any) {
-            console.log(`✗ Could not connect to FlareSolverr: ${e.message || e}. Falling back to clean browser session.`);
+            console.log(`✗ [Lucida] FlareSolverr unavailable (${e.message}). Using clean browser.`);
             return false;
         }
     }
 
     /**
-     * Navigates to Lucida.to via Playwright, solves the Turnstile captcha, and downloads the file
+     * Downloads a track via Lucida.to automation
      */
     public async downloadTrack(url: string, outputDir?: string): Promise<{ success: boolean; filepath?: string; size?: number; error?: string }> {
         const downloadDir = outputDir || path.resolve(__dirname, '../../downloads');
         
-        // 1. Fetch fresh cookies from FlareSolverr
         await this.bypassCloudflare();
 
-        // 2. Launch headless browser
         const browser = await chromium.launch({
             headless: true,
-            args: ['--disable-blink-features=AutomationControlled'] // Hides automated webdriver variable
+            args: [
+                '--disable-blink-features=AutomationControlled',
+                '--no-sandbox',
+                '--disable-setuid-sandbox'
+            ]
         });
 
         const context = await browser.newContext({
             acceptDownloads: true,
-            userAgent: this.userAgent
+            userAgent: this.userAgent,
+            viewport: { width: 1280, height: 720 }
         });
 
-        // 3. Inject FlareSolverr cookies
+        // Add stealth scripts to further hide automation
+        await context.addInitScript(() => {
+            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+        });
+
         if (this.cookies.length > 0) {
             await context.addCookies(this.cookies);
         }
@@ -109,53 +113,66 @@ export class LucidaClient {
         const page = await context.newPage();
 
         try {
-            // URL-encode target link
+            // Encode and go to Lucida with URL directly
             const encodedUrl = encodeURIComponent(url);
             const lucidaUrl = `${this.baseUrl}/?url=${encodedUrl}`;
             
-            console.log(`Navigating browser to: ${lucidaUrl}`);
-            await page.goto(lucidaUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+            console.log(`[Lucida] Navigating to: ${lucidaUrl}`);
+            await page.goto(lucidaUrl, { waitUntil: 'networkidle', timeout: 60000 });
 
-            // 4. Wait for the download button (Max 20 seconds)
-            console.log('Waiting for download button to appear...');
-            await page.waitForSelector('button.download-button:has-text("download")', { timeout: 20000 });
+            // Check if we are stuck on a landing page or Cloudflare
+            const title = await page.title();
+            if (title.includes('Just a moment') || title.includes('Cloudflare')) {
+                console.log('[Lucida] Stuck on Cloudflare. Taking screenshot and failing...');
+                await page.screenshot({ path: path.join(downloadDir, 'cloudflare_stuck.png') });
+                throw new Error('Cloudflare bypass failed in browser.');
+            }
 
-            // Save a debug screenshot before clicking (good for troubleshooting)
-            await page.screenshot({ path: path.join(downloadDir, 'debug_before_click.png') });
+            // Wait for the download button to appear (Lucida can take a while to "fetch" metadata)
+            console.log('[Lucida] Waiting for metadata fetch and download button...');
 
-            // 5. Start download event listener and click the button
-            console.log('Clicking download button...');
+            // Sometimes Lucida shows an error message
+            const errorElement = await page.$('.error-message, .alert-error');
+            if (errorElement) {
+                const errorText = await errorElement.innerText();
+                throw new Error(`Lucida Error: ${errorText}`);
+            }
+
+            // Target the download button. Lucida uses various classes, but button.download-button is common.
+            // Also wait for the progress bar to finish if visible.
+            await page.waitForSelector('button:has-text("download"), .download-button', { timeout: 45000 });
+
+            // Ensure the button is enabled
+            const btn = page.locator('button:has-text("download"), .download-button').first();
+            await btn.waitFor({ state: 'visible' });
+
+            console.log('[Lucida] Clicking download button...');
             const [download] = await Promise.all([
-                page.waitForEvent('download', { timeout: 90000 }), // Wait up to 90 seconds for download start (processing time)
-                page.locator('button.download-button:has-text("download")').first().click()
+                page.waitForEvent('download', { timeout: 120000 }), // Long timeout for large tracks
+                btn.click()
             ]);
 
-            // 6. Save the downloaded file
             const filename = download.suggestedFilename();
             const filepath = path.join(downloadDir, filename);
-            console.log(`Downloading file to: ${filepath}`);
+            console.log(`[Lucida] Saving file: ${filename}`);
             await download.saveAs(filepath);
 
             await browser.close();
 
-            const stats = fs.statSync(filepath);
-            return {
-                success: true,
-                filepath: filepath,
-                size: stats.size
-            };
+            if (fs.existsSync(filepath)) {
+                const stats = fs.statSync(filepath);
+                return { success: true, filepath, size: stats.size };
+            } else {
+                throw new Error('File saved but could not be verified on disk.');
+            }
 
         } catch (e: any) {
-            // Save error screenshot of the failure
+            console.error(`[Lucida] Error: ${e.message}`);
             try {
-                await page.screenshot({ path: path.join(downloadDir, 'debug_error.png') });
+                await page.screenshot({ path: path.join(downloadDir, `error_${Date.now()}.png`) });
             } catch {}
-
             await browser.close();
-            return {
-                success: false,
-                error: `Browser automation error: ${e.message || e}`
-            };
+            return { success: false, error: e.message };
         }
     }
 }

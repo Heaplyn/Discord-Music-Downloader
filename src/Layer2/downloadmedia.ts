@@ -2,7 +2,7 @@
 // Date: 2026-08-09
 // Summary: Standalone Command Line Interface (CLI) script to download media via Lucida (Deezer/Tidal/etc.) or YT-DLP (YouTube).
 
-import { LucidaClient } from './services/lucida.js';
+import { LucidaClient } from './lucida.js';
 import { YtDlp } from 'ytdlp-nodejs';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -10,7 +10,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const downloadDir = path.resolve(__dirname, '../downloads');
+const downloadDir = path.resolve(__dirname, '../../downloads');
 
 // Ensure downloads directory exists
 if (!fs.existsSync(downloadDir)) {

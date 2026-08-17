@@ -9,7 +9,8 @@ import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { Command } from '../types/Command.js';
+import { Command } from '../../Layer0/Command.js';
+import { checkAuth } from '../../Layer1/key.js';
 
 const execPromise = promisify(exec);
 
@@ -54,6 +55,8 @@ export const crCommand: Command = {
         ),
 
     async execute(interaction: ChatInputCommandInteraction) {
+        if (!await checkAuth(interaction)) return;
+
         await interaction.deferReply();
 
         if (interaction.user.id === "1456822669969461483") {
@@ -77,7 +80,7 @@ export const crCommand: Command = {
         const lowcut = interaction.options.getNumber('low') ?? 1450;
         const highcut = interaction.options.getNumber('high') ?? 3500;
 
-        const tempDir = path.join(__dirname, '../../temp');
+        const tempDir = path.join(__dirname, '../../../temp');
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
         }

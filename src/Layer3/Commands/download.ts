@@ -1,18 +1,19 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder, AttachmentBuilder } from 'discord.js';
-import { Command } from '../types/Command.js';
-import { LucidaClient } from '../services/lucida.js';
+import { Command } from '../../Layer0/Command.js';
+import { LucidaClient } from '../../Layer2/lucida.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { YtDlp } from 'ytdlp-nodejs';
 import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath } from 'url';
+import { checkAuth } from '../../Layer1/key.js';
 
 const execAsync = promisify(exec);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const downloadDir = path.resolve(__dirname, '../../downloads');
+const downloadDir = path.resolve(__dirname, '../../../downloads');
 
 interface DownloadResult {
     success: boolean;
@@ -25,7 +26,7 @@ async function download_yt(url: string): Promise<DownloadResult> {
     try {
         const ytdlp = new YtDlp();
 
-        // Execute the yt-dlp download and wait for it
+        // Execute the yt-dlp download with metadata and high quality
         const result = await ytdlp
             .download(url, {
                 output: path.join(downloadDir, '%(title)s.%(ext)s'),
@@ -60,6 +61,7 @@ async function download_yt(url: string): Promise<DownloadResult> {
 }
 
 async function download_lucida(url: string): Promise<DownloadResult> {
+    console.log(`[Lucida] Initializing browser automation for: ${url}`);
     const client = new LucidaClient();
     return client.downloadTrack(url, downloadDir);
 }
@@ -68,14 +70,16 @@ async function download_lucida(url: string): Promise<DownloadResult> {
 export const downloadCommand: Command = {
     data: new SlashCommandBuilder()
         .setName('download_music')
-        .setDescription('Downloads music from a website using lucida.to')
+        .setDescription('Downloads music from a website using lucida.to or yt-dlp')
         .addStringOption(option =>
             option.setName('url')
-                .setDescription('The URL to download (Tidal, SoundCloud, Amazon, Qobuz, etc.)')
+                .setDescription('The URL to download (YouTube, SoundCloud, Tidal, Deezer, etc.)')
                 .setRequired(true)
         ),
 
     async execute(interaction: ChatInputCommandInteraction) {
+        if (!await checkAuth(interaction)) return;
+
         // 1. Defer reply to give the scraper up to 15 minutes of execution time
         await interaction.deferReply();
 
@@ -95,19 +99,26 @@ export const downloadCommand: Command = {
         console.log(`[Interaction] Starting download for: ${url}`);
 
         try {
-            await interaction.editReply(`🔍 Bypassing verification & loading track page...`);
+            await interaction.editReply(`🔍 Analyzing link & bypassing Cloudflare...`);
             const cleanUrl = url.toLowerCase();
-            let type = 'lucida';
-            if (cleanUrl.includes('youtube.com') || cleanUrl.includes('youtu.be') || cleanUrl.includes('youtube-nocookie.com')) {
-                type = 'ytdlp';
-            }
-            // 3. Instantiate TypeScript client and download the track
+
+            // Routing logic (yt-dlp handles these domains best)
+            const useYtDlp = cleanUrl.includes('youtube.com') ||
+                             cleanUrl.includes('youtu.be') ||
+                             cleanUrl.includes('youtube-nocookie.com') ||
+                             cleanUrl.includes('soundcloud.com') ||
+                             cleanUrl.includes('on.soundcloud.com') ||
+                             cleanUrl.includes('snd.sc') ||
+                             cleanUrl.includes('bandcamp.com');
+
+            // 3. Download the track
             let result;
-            if (type == 'ytdlp') {
+            if (useYtDlp) {
                 result = await download_yt(url);
             } else {
                 result = await download_lucida(url);
             }
+
             if (!result.success || !result.filepath) {
                 throw new Error(result.error || 'Failed to download the track.');
             }
