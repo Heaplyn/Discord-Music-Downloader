@@ -5,6 +5,9 @@ import { fileURLToPath } from 'url';
 
 // Import commands
 import { weatherCommand } from '../Layer3/Commands/weather.js';
+import { setupServerCommand } from '../Layer3/Commands/setup_server.js';
+import { funCommand } from '../Layer3/Commands/fun.js';
+import { modCommand } from '../Layer3/Commands/mod.js';
 import { userinfoCommand } from '../Layer3/Commands/userinfo.js';
 import { serverinfoCommand } from '../Layer3/Commands/serverinfo.js';
 import { pollCommand } from '../Layer3/Commands/poll.js';
@@ -61,6 +64,9 @@ const clientId = Buffer.from(TOKEN.split('.')[0], 'base64').toString('utf-8');
 const commandsList = [
     pingCommand,
     weatherCommand,
+    setupServerCommand,
+    funCommand,
+    modCommand,
     userinfoCommand,
     serverinfoCommand,
     pollCommand,
